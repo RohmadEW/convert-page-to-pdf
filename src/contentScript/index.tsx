@@ -134,7 +134,7 @@ const modalConvertToPDF = async () => {
         </div>
         <div style="font-size: 24px;font-weight: 700; text-align: center; margin-top: 18px;">${title}</div>
         <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px">
-          Preparing the resources...
+          Preparing the resources. Please wait...
         </div>
       </div>
     `;
