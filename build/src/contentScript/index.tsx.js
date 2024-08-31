@@ -1,6 +1,6 @@
 import "/src/contentScript/index.css.js";
-import jsPDF from "/vendor/.vite-deps-jspdf.js__v--66891bdb.js";
-import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--3805efd7.js";
+import jsPDF from "/vendor/.vite-deps-jspdf.js__v--dfffa2ea.js";
+import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--dfffa2ea.js";
 import { RuntimeMessage } from "/src/types/RuntimeMessage.ts.js";
 import { pageSizeWidthHeight } from "/src/types/PageSize.ts.js";
 console.info("ContentScript is running");
@@ -94,7 +94,7 @@ const modalConvertToPDF = async () => {
             </select>
             <button id="converter-pdf-download" style="display: flex; align-items: center; background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" style="margin-right: 10px;"><path fill="white" d="M400 296v320L280 496l-56 56 216 216 216-216-56-56-120 120V296H400Zm-240 640V726h80v150h480V726h80v210H160Z"/></svg>
-                Download PDF
+                Download as PDF
             </button>
             <button id="converter-pdf-print" style="display: flex; align-items: center; background-color: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
               <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" style="margin-right: 10px;"><path fill="white" d="M230 386V226h500v160h-70v-90H300v90h-70Zm-70 260v-100h640v100H160Zm470 270v-70H330v70H160V646h640v270H630ZM300 316v-90 90Zm160 470h40v-90h-40v90ZM130 926V616H60V476h190v-90h460v90h190v140h-70v310H630v100H330v-100H130Z"/></svg>
@@ -106,9 +106,12 @@ const modalConvertToPDF = async () => {
             Close
           </button>
         </div>
-        <div style="font-size: 24px;font-weight: 700; text-align: center;">${title}</div>
+        <div style="padding: 10px;font-size: 12px;margin-top: 12px;background: #dddddd;font-style: italic;">
+          This modal will disappear while PDF Download is in progress. Please wait until the download is complete. The modal will reappear after the download is complete.
+        </div>
+        <div style="font-size: 24px;font-weight: 700; text-align: center; margin-top: 18px;">${title}</div>
         <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 18px;margin-bottom: 12px">
-          Preparing to convert the page to PDF...
+          Preparing the resources...
         </div>
       </div>
     `;
