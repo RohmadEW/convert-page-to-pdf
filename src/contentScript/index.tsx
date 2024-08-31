@@ -133,7 +133,7 @@ const modalConvertToPDF = async () => {
           This modal will disappear while PDF Download is in progress. Please wait until the download is complete. The modal will reappear after the download is complete.
         </div>
         <div style="font-size: 24px;font-weight: 700; text-align: center; margin-top: 18px;">${title}</div>
-        <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 18px;margin-bottom: 12px">
+        <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px">
           Preparing the resources...
         </div>
       </div>
