@@ -80,9 +80,9 @@ const cropImage = async (img, pageWidth, pageHeight, position) => {
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 5,
+          width: pageWidth * 3,
           // Increase resolution for better quality
-          height: pageHeight * 5
+          height: pageHeight * 3
           // Increase resolution for better quality
         });
         cropper.destroy();
@@ -155,9 +155,29 @@ const modalConvertToPDF = async () => {
       downloadText.textContent = "Downloading...";
     }
     modal.style.display = "none";
+    const pageSize = document.getElementById("converter-pdf-page-size").value;
+    const pdf = new jsPDF("p", "mm", pageSize);
+    const getWidthHeight = pageSizeWidthHeight.find(
+      (size) => size.title === pageSize
+    );
+    const pageWidth = getWidthHeight?.width ?? 210;
+    const pageHeight = getWidthHeight?.height ?? 297;
     html2canvas(document.getElementsByTagName("html")[0]).then(
       async (canvas) => {
-        const imgData = canvas.toDataURL("image/png");
+        const ratioPage = pageHeight / pageWidth;
+        const pageHeightOnCanvas = ratioPage * canvas.width;
+        const countPages = Math.ceil(canvas.height / pageHeightOnCanvas);
+        const canvasHeightShouldBe = countPages * pageHeightOnCanvas;
+        const newCanvas = document.createElement("canvas");
+        newCanvas.width = canvas.width;
+        newCanvas.height = canvasHeightShouldBe;
+        const newCanvasContext = newCanvas.getContext("2d");
+        if (newCanvasContext) {
+          newCanvasContext.fillStyle = "white";
+          newCanvasContext.fillRect(0, 0, newCanvas.width, newCanvas.height);
+          newCanvasContext.drawImage(canvas, 0, 0);
+        }
+        const imgData = newCanvas.toDataURL("image/png");
         modal.style.display = "flex";
         const img = document.createElement("img");
         img.src = imgData;
@@ -172,15 +192,6 @@ const modalConvertToPDF = async () => {
             height: canvas.height,
             width: canvas.width
           });
-          const pageSize = document.getElementById(
-            "converter-pdf-page-size"
-          ).value;
-          const pdf = new jsPDF("p", "mm", pageSize);
-          const getWidthHeight = pageSizeWidthHeight.find(
-            (size) => size.title === pageSize
-          );
-          const pageWidth = getWidthHeight?.width ?? 210;
-          const pageHeight = getWidthHeight?.height ?? 297;
           const imgHeight = img.height * pageWidth / img.width;
           let heightLeft = imgHeight;
           if (imgHeight <= pageHeight) {
@@ -209,7 +220,6 @@ const modalConvertToPDF = async () => {
           console.log("PDF Size (MB)", {
             size: pdf.output("blob").size / 1024 / 1024
           });
-          document.body.removeChild(img);
           if (downloadText) {
             downloadText.textContent = "Download as PDF";
           }

@@ -106,8 +106,8 @@ const cropImage = async (
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 5, // Increase resolution for better quality
-          height: pageHeight * 5, // Increase resolution for better quality
+          width: pageWidth * 3, // Increase resolution for better quality
+          height: pageHeight * 3, // Increase resolution for better quality
         });
         cropper.destroy();
         resolve(canvas.toDataURL("image/png"));
@@ -201,10 +201,44 @@ const modalConvertToPDF = async () => {
       // Hide modal
       modal.style.display = "none";
 
+      // Initiate page and PDF
+      const pageSize = (
+        document.getElementById("converter-pdf-page-size") as HTMLSelectElement
+      ).value;
+      const pdf = new jsPDF("p", "mm", pageSize);
+
+      // Get width and height of page
+      const getWidthHeight = pageSizeWidthHeight.find(
+        (size) => size.title === pageSize
+      );
+      const pageWidth = getWidthHeight?.width ?? 210; // Set default to A4
+      const pageHeight = getWidthHeight?.height ?? 297; // Set default to A4
+
       // Convert page to PDF
       html2canvas(document.getElementsByTagName("html")[0]).then(
         async (canvas) => {
-          const imgData = canvas.toDataURL("image/png");
+          // Get ratio of page
+          const ratioPage = pageHeight / pageWidth;
+          const pageHeightOnCanvas = ratioPage * canvas.width;
+          const countPages = Math.ceil(canvas.height / pageHeightOnCanvas);
+          const canvasHeightShouldBe = countPages * pageHeightOnCanvas;
+
+          // Create new canvas with height of all pages
+          // Set height of new canvas to be equal to the height of all pages
+          const newCanvas = document.createElement("canvas");
+          newCanvas.width = canvas.width;
+          newCanvas.height = canvasHeightShouldBe;
+
+          const newCanvasContext = newCanvas.getContext("2d");
+          // Set background color to white
+          if (newCanvasContext) {
+            newCanvasContext.fillStyle = "white";
+            newCanvasContext.fillRect(0, 0, newCanvas.width, newCanvas.height);
+            newCanvasContext.drawImage(canvas, 0, 0);
+          }
+
+          // Get base64 data of new canvas
+          const imgData = newCanvas.toDataURL("image/png");
 
           // Show modal
           modal.style.display = "flex";
@@ -225,24 +259,10 @@ const modalConvertToPDF = async () => {
               width: canvas.width,
             });
 
-            // Initiate page and PDF
-            const pageSize = (
-              document.getElementById(
-                "converter-pdf-page-size"
-              ) as HTMLSelectElement
-            ).value;
-            const pdf = new jsPDF("p", "mm", pageSize);
-
-            // Get width and height of page
-            const getWidthHeight = pageSizeWidthHeight.find(
-              (size) => size.title === pageSize
-            );
-            const pageWidth = getWidthHeight?.width ?? 210; // Set default to A4
-            const pageHeight = getWidthHeight?.height ?? 297; // Set default to A4
+            // Crop image if height is more than page height
             const imgHeight = (img.height * pageWidth) / img.width;
             let heightLeft = imgHeight;
 
-            // Crop image if height is more than page height
             if (imgHeight <= pageHeight) {
               pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
             } else {
@@ -276,7 +296,7 @@ const modalConvertToPDF = async () => {
               size: pdf.output("blob").size / 1024 / 1024,
             });
 
-            document.body.removeChild(img);
+            // document.body.removeChild(img);
 
             // Change download text
             if (downloadText) {
