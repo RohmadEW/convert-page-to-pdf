@@ -5,6 +5,7 @@ import { RuntimeMessage } from "@/types/RuntimeMessage";
 import { pageSizeWidthHeight } from "@/types/PageSize";
 import Cropper from "cropperjs";
 import fx from "glfx";
+import Compressor from "compressorjs";
 
 console.info("ContentScript is running");
 
@@ -107,11 +108,28 @@ const cropImage = async (
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 4, // Increase resolution for better quality
-          height: pageHeight * 4, // Increase resolution for better quality
+          width: pageWidth * 7, // Increase resolution for better quality
+          height: pageHeight * 7, // Increase resolution for better quality
         });
         cropper.destroy();
-        resolve(canvas.toDataURL("image/png"));
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              new Compressor(blob, {
+                quality: 0.8,
+                convertTypes: ["image/jpeg", "image/png", "image/jpg"],
+                success: (resultBlob) => {
+                  const croppedDataUrl = URL.createObjectURL(resultBlob);
+
+                  resolve(croppedDataUrl);
+                },
+              });
+            }
+          },
+          "image/png",
+          1
+        );
       },
     });
   });
@@ -262,12 +280,16 @@ const modalConvertToPDF = async () => {
           document.body.appendChild(img);
 
           img.onload = async () => {
-            // Terapkan penajaman dengan glfx.js sebelum memotong gambar
-            const sharpenedImgData = applySharpenEffect(img);
+            try {
+              // Terapkan penajaman dengan glfx.js sebelum memotong gambar
+              const sharpenedImgData = applySharpenEffect(img);
 
-            // Ganti gambar asli dengan gambar yang sudah dipertajam
-            img.src = sharpenedImgData;
-            await new Promise((resolve) => (img.onload = resolve));
+              // Ganti gambar asli dengan gambar yang sudah dipertajam
+              img.src = sharpenedImgData;
+              await new Promise((resolve) => (img.onload = resolve));
+            } catch (error) {
+              console.error("Error while applying sharpen effect", error);
+            }
 
             // Crop image if height is more than page height
             const imgHeight = (img.height * pageWidth) / img.width;

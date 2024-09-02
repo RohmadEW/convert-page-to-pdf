@@ -1,10 +1,11 @@
 import "/src/contentScript/index.css.js";
-import jsPDF from "/vendor/.vite-deps-jspdf.js__v--735c59fb.js";
-import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--735c59fb.js";
+import jsPDF from "/vendor/.vite-deps-jspdf.js__v--d9c77827.js";
+import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--d9c77827.js";
 import { RuntimeMessage } from "/src/types/RuntimeMessage.ts.js";
 import { pageSizeWidthHeight } from "/src/types/PageSize.ts.js";
-import Cropper from "/vendor/.vite-deps-cropperjs.js__v--735c59fb.js";
-import __vite__cjsImport6_glfx from "/vendor/.vite-deps-glfx.js__v--735c59fb.js"; const fx = __vite__cjsImport6_glfx.__esModule ? __vite__cjsImport6_glfx.default : __vite__cjsImport6_glfx;
+import Cropper from "/vendor/.vite-deps-cropperjs.js__v--d9c77827.js";
+import __vite__cjsImport6_glfx from "/vendor/.vite-deps-glfx.js__v--d9c77827.js"; const fx = __vite__cjsImport6_glfx.__esModule ? __vite__cjsImport6_glfx.default : __vite__cjsImport6_glfx;
+import Compressor from "/vendor/.vite-deps-compressorjs.js__v--d9c77827.js";
 console.info("ContentScript is running");
 export const getBase64Image = async (imgElement) => {
   const src = imgElement.src;
@@ -81,13 +82,28 @@ const cropImage = async (img, pageWidth, pageHeight, position) => {
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 4,
+          width: pageWidth * 7,
           // Increase resolution for better quality
-          height: pageHeight * 4
+          height: pageHeight * 7
           // Increase resolution for better quality
         });
         cropper.destroy();
-        resolve(canvas.toDataURL("image/png"));
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              new Compressor(blob, {
+                quality: 0.8,
+                convertTypes: ["image/jpeg", "image/png", "image/jpg"],
+                success: (resultBlob) => {
+                  const croppedDataUrl = URL.createObjectURL(resultBlob);
+                  resolve(croppedDataUrl);
+                }
+              });
+            }
+          },
+          "image/png",
+          1
+        );
       }
     });
   });
@@ -190,9 +206,13 @@ const modalConvertToPDF = async () => {
         img.src = imgData;
         document.body.appendChild(img);
         img.onload = async () => {
-          const sharpenedImgData = applySharpenEffect(img);
-          img.src = sharpenedImgData;
-          await new Promise((resolve) => img.onload = resolve);
+          try {
+            const sharpenedImgData = applySharpenEffect(img);
+            img.src = sharpenedImgData;
+            await new Promise((resolve) => img.onload = resolve);
+          } catch (error) {
+            console.error("Error while applying sharpen effect", error);
+          }
           const imgHeight = img.height * pageWidth / img.width;
           let heightLeft = imgHeight;
           if (imgHeight <= pageHeight) {
