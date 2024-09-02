@@ -1,11 +1,11 @@
 import "/src/contentScript/index.css.js";
-import jsPDF from "/vendor/.vite-deps-jspdf.js__v--d9c77827.js";
-import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--d9c77827.js";
+import jsPDF from "/vendor/.vite-deps-jspdf.js__v--99c707ce.js";
+import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--64a13d8c.js";
 import { RuntimeMessage } from "/src/types/RuntimeMessage.ts.js";
 import { pageSizeWidthHeight } from "/src/types/PageSize.ts.js";
-import Cropper from "/vendor/.vite-deps-cropperjs.js__v--d9c77827.js";
-import __vite__cjsImport6_glfx from "/vendor/.vite-deps-glfx.js__v--d9c77827.js"; const fx = __vite__cjsImport6_glfx.__esModule ? __vite__cjsImport6_glfx.default : __vite__cjsImport6_glfx;
-import Compressor from "/vendor/.vite-deps-compressorjs.js__v--d9c77827.js";
+import Cropper from "/vendor/.vite-deps-cropperjs.js__v--7dee95ac.js";
+import __vite__cjsImport6_glfx from "/vendor/.vite-deps-glfx.js__v--a2fb7b96.js"; const fx = __vite__cjsImport6_glfx.__esModule ? __vite__cjsImport6_glfx.default : __vite__cjsImport6_glfx;
+import Compressor from "/vendor/.vite-deps-compressorjs.js__v--a6869f39.js";
 console.info("ContentScript is running");
 export const getBase64Image = async (imgElement) => {
   const src = imgElement.src;
@@ -227,7 +227,16 @@ const modalConvertToPDF = async () => {
                 position
               );
               if (croppedImg) {
-                pdf.addImage(croppedImg, "PNG", 0, 0, pageWidth, pageHeight);
+                pdf.addImage(
+                  croppedImg,
+                  "PNG",
+                  0,
+                  0,
+                  pageWidth,
+                  pageHeight,
+                  void 0,
+                  "SLOW"
+                );
               }
               position++;
               heightLeft -= pageHeight;
@@ -238,9 +247,6 @@ const modalConvertToPDF = async () => {
           }
           const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
           pdf.save(`${fileName}.pdf`);
-          console.log("PDF Size (MB)", {
-            size: pdf.output("blob").size / 1024 / 1024
-          });
           document.body.removeChild(img);
           if (downloadText) {
             downloadText.textContent = "Download as PDF";

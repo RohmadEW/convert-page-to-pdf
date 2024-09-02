@@ -309,7 +309,16 @@ const modalConvertToPDF = async () => {
                   position
                 );
                 if (croppedImg) {
-                  pdf.addImage(croppedImg, "PNG", 0, 0, pageWidth, pageHeight);
+                  pdf.addImage(
+                    croppedImg,
+                    "PNG",
+                    0,
+                    0,
+                    pageWidth,
+                    pageHeight,
+                    undefined,
+                    "SLOW"
+                  );
                 }
 
                 position++;
@@ -323,10 +332,6 @@ const modalConvertToPDF = async () => {
 
             const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
             pdf.save(`${fileName}.pdf`);
-
-            console.log("PDF Size (MB)", {
-              size: pdf.output("blob").size / 1024 / 1024,
-            });
 
             document.body.removeChild(img);
 
