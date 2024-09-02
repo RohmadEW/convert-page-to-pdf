@@ -149,46 +149,46 @@ const modalConvertToPDF = async () => {
       window.print();
     });
 
-  // Listener for download button click
   document
     .getElementById("converter-pdf-download")
     ?.addEventListener("click", async () => {
-      // Hide modal
-      modal.style.display = "none";
+      const downloadText = document.getElementById(
+        "converter-pdf-download-text"
+      );
+
+      if (downloadText) {
+        downloadText.textContent = "Downloading...";
+      }
 
       // Convert page to PDF
-      html2canvas(document.getElementsByTagName("html")[0]).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pageSize = (
-          document.getElementById(
-            "converter-pdf-page-size"
-          ) as HTMLSelectElement
-        ).value;
-        const pdf = new jsPDF("p", "mm", pageSize);
+      const pdf = new jsPDF({
+        orientation: "p", // Portrait
+        unit: "mm",
+        format: "a4", // Use 'a4' or other formats as needed
+      });
+      const pageSize = (
+        document.getElementById("converter-pdf-page-size") as HTMLSelectElement
+      ).value;
+      const getWidthHeight = pageSizeWidthHeight.find(
+        (size) => size.title === pageSize
+      );
+      const imgWidth = getWidthHeight?.width ?? 210;
+      const pageHeight = getWidthHeight?.height ?? 297;
 
-        const getWidthHeight = pageSizeWidthHeight.find(
-          (size) => size.title === pageSize
-        );
-        const imgWidth = getWidthHeight?.width ?? 210;
-        const pageHeight = getWidthHeight?.height ?? 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
+      // Capture the HTML content and add it to the PDF
+      pdf.html(document.body, {
+        callback: (pdf) => {
+          // Save the PDF
+          const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+          pdf.save(`${fileName}.pdf`);
 
-        let position = 0;
-
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-        pdf.save(`${fileName}.pdf`);
-        modal.style.display = "flex";
+          if (downloadText) {
+            downloadText.textContent = "Download as PDF";
+          }
+        },
+        width: imgWidth, // Content width
+        windowWidth: window.innerWidth, // Ensure content fits well in PDF
+        autoPaging: true, // Automatically paginate content
       });
     });
 

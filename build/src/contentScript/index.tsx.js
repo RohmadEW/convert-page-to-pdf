@@ -1,6 +1,5 @@
 import "/src/contentScript/index.css.js";
-import jsPDF from "/vendor/.vite-deps-jspdf.js__v--dfffa2ea.js";
-import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--dfffa2ea.js";
+import jsPDF from "/vendor/.vite-deps-jspdf.js__v--72af9abc.js";
 import { RuntimeMessage } from "/src/types/RuntimeMessage.ts.js";
 import { pageSizeWidthHeight } from "/src/types/PageSize.ts.js";
 console.info("ContentScript is running");
@@ -110,8 +109,8 @@ const modalConvertToPDF = async () => {
           This modal will disappear while PDF Download is in progress. Please wait until the download is complete. The modal will reappear after the download is complete.
         </div>
         <div style="font-size: 24px;font-weight: 700; text-align: center; margin-top: 18px;">${title}</div>
-        <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 18px;margin-bottom: 12px">
-          Preparing the resources...
+        <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px">
+          Preparing the resources. Please wait...
         </div>
       </div>
     `;
@@ -120,32 +119,39 @@ const modalConvertToPDF = async () => {
     window.print();
   });
   document.getElementById("converter-pdf-download")?.addEventListener("click", async () => {
-    modal.style.display = "none";
-    html2canvas(document.getElementsByTagName("html")[0]).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pageSize = document.getElementById(
-        "converter-pdf-page-size"
-      ).value;
-      const pdf = new jsPDF("p", "mm", pageSize);
-      const getWidthHeight = pageSizeWidthHeight.find(
-        (size) => size.title === pageSize
-      );
-      const imgWidth = getWidthHeight?.width ?? 210;
-      const pageHeight = getWidthHeight?.height ?? 297;
-      const imgHeight = canvas.height * imgWidth / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-      pdf.save(`${fileName}.pdf`);
-      modal.style.display = "flex";
+    const downloadText = document.getElementById(
+      "converter-pdf-download-text"
+    );
+    if (downloadText) {
+      downloadText.textContent = "Downloading...";
+    }
+    const pdf = new jsPDF({
+      orientation: "p",
+      // Portrait
+      unit: "mm",
+      format: "a4"
+      // Use 'a4' or other formats as needed
+    });
+    const pageSize = document.getElementById("converter-pdf-page-size").value;
+    const getWidthHeight = pageSizeWidthHeight.find(
+      (size) => size.title === pageSize
+    );
+    const imgWidth = getWidthHeight?.width ?? 210;
+    const pageHeight = getWidthHeight?.height ?? 297;
+    pdf.html(document.body, {
+      callback: (pdf2) => {
+        const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        pdf2.save(`${fileName}.pdf`);
+        if (downloadText) {
+          downloadText.textContent = "Download as PDF";
+        }
+      },
+      width: imgWidth,
+      // Content width
+      windowWidth: window.innerWidth,
+      // Ensure content fits well in PDF
+      autoPaging: true
+      // Automatically paginate content
     });
   });
   document.getElementById("converter-pdf-close")?.addEventListener("click", () => {
