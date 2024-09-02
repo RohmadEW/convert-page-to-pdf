@@ -1,9 +1,10 @@
 import "/src/contentScript/index.css.js";
-import jsPDF from "/vendor/.vite-deps-jspdf.js__v--c36909bf.js";
-import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--c36909bf.js";
+import jsPDF from "/vendor/.vite-deps-jspdf.js__v--735c59fb.js";
+import html2canvas from "/vendor/.vite-deps-html2canvas.js__v--735c59fb.js";
 import { RuntimeMessage } from "/src/types/RuntimeMessage.ts.js";
 import { pageSizeWidthHeight } from "/src/types/PageSize.ts.js";
-import Cropper from "/vendor/.vite-deps-cropperjs.js__v--c36909bf.js";
+import Cropper from "/vendor/.vite-deps-cropperjs.js__v--735c59fb.js";
+import __vite__cjsImport6_glfx from "/vendor/.vite-deps-glfx.js__v--735c59fb.js"; const fx = __vite__cjsImport6_glfx.__esModule ? __vite__cjsImport6_glfx.default : __vite__cjsImport6_glfx;
 console.info("ContentScript is running");
 export const getBase64Image = async (imgElement) => {
   const src = imgElement.src;
@@ -80,9 +81,9 @@ const cropImage = async (img, pageWidth, pageHeight, position) => {
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 3,
+          width: pageWidth * 4,
           // Increase resolution for better quality
-          height: pageHeight * 3
+          height: pageHeight * 4
           // Increase resolution for better quality
         });
         cropper.destroy();
@@ -91,6 +92,12 @@ const cropImage = async (img, pageWidth, pageHeight, position) => {
     });
   });
 };
+function applySharpenEffect(img) {
+  const fxCanvas = fx.canvas();
+  const texture = fxCanvas.texture(img);
+  fxCanvas.draw(texture).unsharpMask(3, 1).update();
+  return fxCanvas.toDataURL("image/png");
+}
 const modalConvertToPDF = async () => {
   if (document.getElementById("converter-pdf-modal")) {
     document.getElementById("converter-pdf-modal")?.remove();
@@ -183,15 +190,9 @@ const modalConvertToPDF = async () => {
         img.src = imgData;
         document.body.appendChild(img);
         img.onload = async () => {
-          console.log("Image size in MB", {
-            size: imgData.length / 1024 / 1024,
-            height: img.height,
-            width: img.width
-          });
-          console.log("Canvas size", {
-            height: canvas.height,
-            width: canvas.width
-          });
+          const sharpenedImgData = applySharpenEffect(img);
+          img.src = sharpenedImgData;
+          await new Promise((resolve) => img.onload = resolve);
           const imgHeight = img.height * pageWidth / img.width;
           let heightLeft = imgHeight;
           if (imgHeight <= pageHeight) {
@@ -220,6 +221,7 @@ const modalConvertToPDF = async () => {
           console.log("PDF Size (MB)", {
             size: pdf.output("blob").size / 1024 / 1024
           });
+          document.body.removeChild(img);
           if (downloadText) {
             downloadText.textContent = "Download as PDF";
           }

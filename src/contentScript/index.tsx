@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import { RuntimeMessage } from "@/types/RuntimeMessage";
 import { pageSizeWidthHeight } from "@/types/PageSize";
 import Cropper from "cropperjs";
+import fx from "glfx";
 
 console.info("ContentScript is running");
 
@@ -106,8 +107,8 @@ const cropImage = async (
       },
       ready: () => {
         const canvas = cropper.getCroppedCanvas({
-          width: pageWidth * 3, // Increase resolution for better quality
-          height: pageHeight * 3, // Increase resolution for better quality
+          width: pageWidth * 4, // Increase resolution for better quality
+          height: pageHeight * 4, // Increase resolution for better quality
         });
         cropper.destroy();
         resolve(canvas.toDataURL("image/png"));
@@ -115,6 +116,19 @@ const cropImage = async (
     });
   });
 };
+
+// Fungsi untuk menerapkan efek penajaman menggunakan glfx.js
+function applySharpenEffect(img: HTMLImageElement) {
+  // Inisialisasi glfx.js dan buat canvas
+  const fxCanvas = fx.canvas();
+  const texture = fxCanvas.texture(img);
+
+  // Terapkan filter unsharp mask untuk mempertajam gambar
+  fxCanvas.draw(texture).unsharpMask(3, 1).update(); // Atur parameter sesuai kebutuhan
+
+  // Ambil gambar yang sudah dipertajam dalam bentuk base64
+  return fxCanvas.toDataURL("image/png");
+}
 
 // Open modal to convert page to PDF
 const modalConvertToPDF = async () => {
@@ -248,16 +262,12 @@ const modalConvertToPDF = async () => {
           document.body.appendChild(img);
 
           img.onload = async () => {
-            console.log("Image size in MB", {
-              size: imgData.length / 1024 / 1024,
-              height: img.height,
-              width: img.width,
-            });
+            // Terapkan penajaman dengan glfx.js sebelum memotong gambar
+            const sharpenedImgData = applySharpenEffect(img);
 
-            console.log("Canvas size", {
-              height: canvas.height,
-              width: canvas.width,
-            });
+            // Ganti gambar asli dengan gambar yang sudah dipertajam
+            img.src = sharpenedImgData;
+            await new Promise((resolve) => (img.onload = resolve));
 
             // Crop image if height is more than page height
             const imgHeight = (img.height * pageWidth) / img.width;
@@ -296,7 +306,7 @@ const modalConvertToPDF = async () => {
               size: pdf.output("blob").size / 1024 / 1024,
             });
 
-            // document.body.removeChild(img);
+            document.body.removeChild(img);
 
             // Change download text
             if (downloadText) {
