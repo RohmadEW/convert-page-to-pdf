@@ -191,6 +191,9 @@ const modalConvertToPDF = async () => {
         <div id="converter-pdf-preparing" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px">
           Preparing the resources. Please wait...
         </div>
+        <div id="converter-pdf-alert-downloading" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px;display: none;">
+          Loading the screenshots, it takes a few seconds.
+        </div>
       </div>
     `;
 
@@ -215,6 +218,18 @@ const modalConvertToPDF = async () => {
       if (downloadText) {
         downloadText.textContent = "Downloading...";
       }
+
+      const alertDownloadText = document.getElementById(
+        "converter-pdf-alert-downloading"
+      );
+      if (alertDownloadText) {
+        alertDownloadText.style.display = "block";
+        alertDownloadText.textContent =
+          "Loading the screenshots, it takes a few seconds. This modal will be disappeared...";
+      }
+
+      // Delay for 500ms
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Hide modal
       modal.style.display = "none";
@@ -260,6 +275,11 @@ const modalConvertToPDF = async () => {
 
           // Show modal
           modal.style.display = "flex";
+
+          if (alertDownloadText) {
+            alertDownloadText.textContent =
+              "Generating the PDF, wait for a few seconds...";
+          }
 
           const img = document.createElement("img");
           img.src = imgData;
@@ -314,6 +334,16 @@ const modalConvertToPDF = async () => {
             if (downloadText) {
               downloadText.textContent = "Download as PDF";
             }
+
+            if (alertDownloadText) {
+              alertDownloadText.textContent = "Download completed!";
+            }
+
+            setTimeout(() => {
+              if (alertDownloadText) {
+                alertDownloadText.style.display = "none";
+              }
+            }, 2500);
           };
         }
       );
