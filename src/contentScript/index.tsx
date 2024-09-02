@@ -44,6 +44,15 @@ async function replaceImagesWithBase64() {
     await getBase64Image(img).then((base64: any) => {
       img.src = base64;
     });
+
+    // Remove sources if in the same parent
+    const parent = img.parentElement;
+    if (parent) {
+      const sources = parent.querySelectorAll("source");
+      sources.forEach((source) => {
+        source.remove();
+      });
+    }
   }
 }
 
@@ -132,6 +141,15 @@ const cropImage = async (
       },
     });
   });
+};
+
+const removeAllIFrame = () => {
+  const iframes = document.querySelectorAll("iframe");
+  if (iframes.length > 0) {
+    iframes.forEach((iframe) => {
+      iframe.remove();
+    });
+  }
 };
 
 // Open modal to convert page to PDF
@@ -324,6 +342,8 @@ const modalConvertToPDF = async () => {
                 }
               }
             }
+
+            removeAllIFrame();
 
             const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
             pdf.save(`${fileName}.pdf`);

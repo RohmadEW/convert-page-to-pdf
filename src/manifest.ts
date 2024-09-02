@@ -24,8 +24,5 @@ export default defineManifest({
       js: ["src/contentScript/index.tsx"],
     },
   ],
-  permissions: [
-    "activeTab",
-    "scripting",
-  ],
+  permissions: ["activeTab", "scripting", "downloads"],
 });
