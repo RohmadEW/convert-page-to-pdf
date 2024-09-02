@@ -3,6 +3,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { RuntimeMessage } from "@/types/RuntimeMessage";
 import { pageSizeWidthHeight } from "@/types/PageSize";
+import Cropper from "cropperjs";
 
 console.info("ContentScript is running");
 
@@ -79,6 +80,42 @@ function scrollToTop() {
   return scrollToPosition(0);
 }
 
+const cropImage = async (
+  img: HTMLImageElement,
+  pageWidth: number,
+  pageHeight: number,
+  position: number
+) => {
+  return new Promise<string | null>((resolve) => {
+    // Get window width and calculate the ratio based on img dimensions
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+
+    // Calculate image dimensions
+    const ratio = imgWidth / pageWidth;
+    const yPosition = position * pageHeight * ratio;
+
+    // Create cropper instance
+    const cropper = new Cropper(img, {
+      viewMode: 1,
+      aspectRatio: pageWidth / pageHeight,
+      data: {
+        y: yPosition,
+        height: imgHeight,
+        width: imgWidth,
+      },
+      ready: () => {
+        const canvas = cropper.getCroppedCanvas({
+          width: pageWidth * 5, // Increase resolution for better quality
+          height: pageHeight * 5, // Increase resolution for better quality
+        });
+        cropper.destroy();
+        resolve(canvas.toDataURL("image/png"));
+      },
+    });
+  });
+};
+
 // Open modal to convert page to PDF
 const modalConvertToPDF = async () => {
   if (document.getElementById("converter-pdf-modal")) {
@@ -117,7 +154,7 @@ const modalConvertToPDF = async () => {
             </select>
             <button id="converter-pdf-download" style="display: flex; align-items: center; background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
                 <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" style="margin-right: 10px;"><path fill="white" d="M400 296v320L280 496l-56 56 216 216 216-216-56-56-120 120V296H400Zm-240 640V726h80v150h480V726h80v210H160Z"/></svg>
-                Download as PDF
+                <span id="converter-pdf-download-text">Download as PDF</span>
             </button>
             <button id="converter-pdf-print" style="display: flex; align-items: center; background-color: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
               <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" style="margin-right: 10px;"><path fill="white" d="M230 386V226h500v160h-70v-90H300v90h-70Zm-70 260v-100h640v100H160Zm470 270v-70H330v70H160V646h640v270H630ZM300 316v-90 90Zm160 470h40v-90h-40v90ZM130 926V616H60V476h190v-90h460v90h190v140h-70v310H630v100H330v-100H130Z"/></svg>
@@ -153,43 +190,101 @@ const modalConvertToPDF = async () => {
   document
     .getElementById("converter-pdf-download")
     ?.addEventListener("click", async () => {
+      // Change download text
+      const downloadText = document.getElementById(
+        "converter-pdf-download-text"
+      );
+      if (downloadText) {
+        downloadText.textContent = "Downloading...";
+      }
+
       // Hide modal
       modal.style.display = "none";
 
       // Convert page to PDF
-      html2canvas(document.getElementsByTagName("html")[0]).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pageSize = (
-          document.getElementById(
-            "converter-pdf-page-size"
-          ) as HTMLSelectElement
-        ).value;
-        const pdf = new jsPDF("p", "mm", pageSize);
+      html2canvas(document.getElementsByTagName("html")[0]).then(
+        async (canvas) => {
+          const imgData = canvas.toDataURL("image/png");
 
-        const getWidthHeight = pageSizeWidthHeight.find(
-          (size) => size.title === pageSize
-        );
-        const imgWidth = getWidthHeight?.width ?? 210;
-        const pageHeight = getWidthHeight?.height ?? 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
+          // Show modal
+          modal.style.display = "flex";
 
-        let position = 0;
+          const img = document.createElement("img");
+          img.src = imgData;
+          document.body.appendChild(img);
 
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+          img.onload = async () => {
+            console.log("Image size in MB", {
+              size: imgData.length / 1024 / 1024,
+              height: img.height,
+              width: img.width,
+            });
 
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
+            console.log("Canvas size", {
+              height: canvas.height,
+              width: canvas.width,
+            });
+
+            // Initiate page and PDF
+            const pageSize = (
+              document.getElementById(
+                "converter-pdf-page-size"
+              ) as HTMLSelectElement
+            ).value;
+            const pdf = new jsPDF("p", "mm", pageSize);
+
+            // Get width and height of page
+            const getWidthHeight = pageSizeWidthHeight.find(
+              (size) => size.title === pageSize
+            );
+            const pageWidth = getWidthHeight?.width ?? 210; // Set default to A4
+            const pageHeight = getWidthHeight?.height ?? 297; // Set default to A4
+            const imgHeight = (img.height * pageWidth) / img.width;
+            let heightLeft = imgHeight;
+
+            // Crop image if height is more than page height
+            if (imgHeight <= pageHeight) {
+              pdf.addImage(imgData, "PNG", 0, 0, pageWidth, imgHeight);
+            } else {
+              let position = 0;
+
+              // Crop image to multiple pages using cropperjs
+              while (heightLeft > 0) {
+                const croppedImg = await cropImage(
+                  img,
+                  pageWidth,
+                  pageHeight,
+                  position
+                );
+                if (croppedImg) {
+                  pdf.addImage(croppedImg, "PNG", 0, 0, pageWidth, pageHeight);
+                }
+
+                position++;
+                heightLeft -= pageHeight;
+
+                if (heightLeft > 0) {
+                  pdf.addPage();
+                }
+              }
+            }
+
+            const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+            pdf.save(`${fileName}.pdf`);
+
+            console.log("PDF Size (MB)", {
+              size: pdf.output("blob").size / 1024 / 1024,
+            });
+
+            document.body.removeChild(img);
+
+            // Change download text
+            if (downloadText) {
+              downloadText.textContent = "Download as PDF";
+            }
+          };
         }
-
-        const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-        pdf.save(`${fileName}.pdf`);
-        modal.style.display = "flex";
-      });
+      );
     });
 
   // Listener for close button click
@@ -209,7 +304,6 @@ const modalConvertToPDF = async () => {
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === RuntimeMessage.CONVERT_TO_PDF_OPEN_MODAL) {
-    console.log("open modal");
     modalConvertToPDF();
   }
 
