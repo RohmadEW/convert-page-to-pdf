@@ -4,7 +4,6 @@ import html2canvas from "html2canvas";
 import { RuntimeMessage } from "@/types/RuntimeMessage";
 import { pageSizeWidthHeight } from "@/types/PageSize";
 import Cropper from "cropperjs";
-import fx from "glfx";
 import Compressor from "compressorjs";
 
 console.info("ContentScript is running");
@@ -134,19 +133,6 @@ const cropImage = async (
     });
   });
 };
-
-// Fungsi untuk menerapkan efek penajaman menggunakan glfx.js
-function applySharpenEffect(img: HTMLImageElement) {
-  // Inisialisasi glfx.js dan buat canvas
-  const fxCanvas = fx.canvas();
-  const texture = fxCanvas.texture(img);
-
-  // Terapkan filter unsharp mask untuk mempertajam gambar
-  fxCanvas.draw(texture).unsharpMask(3, 1).update(); // Atur parameter sesuai kebutuhan
-
-  // Ambil gambar yang sudah dipertajam dalam bentuk base64
-  return fxCanvas.toDataURL("image/png");
-}
 
 // Open modal to convert page to PDF
 const modalConvertToPDF = async () => {
@@ -280,17 +266,6 @@ const modalConvertToPDF = async () => {
           document.body.appendChild(img);
 
           img.onload = async () => {
-            try {
-              // Terapkan penajaman dengan glfx.js sebelum memotong gambar
-              const sharpenedImgData = applySharpenEffect(img);
-
-              // Ganti gambar asli dengan gambar yang sudah dipertajam
-              img.src = sharpenedImgData;
-              await new Promise((resolve) => (img.onload = resolve));
-            } catch (error) {
-              console.error("Error while applying sharpen effect", error);
-            }
-
             // Crop image if height is more than page height
             const imgHeight = (img.height * pageWidth) / img.width;
             let heightLeft = imgHeight;

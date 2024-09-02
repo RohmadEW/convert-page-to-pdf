@@ -17,11 +17,14 @@
   },
   "content_scripts": [
     {
+      "js": [
+        "assets/index.tsx-loader-cdc3ab63.js"
+      ],
       "matches": [
         "<all_urls>"
       ],
-      "js": [
-        "src/contentScript/index.tsx-loader.js"
+      "css": [
+        "assets/index-be9bd85e.css"
       ]
     }
   ],
@@ -35,8 +38,11 @@
         "<all_urls>"
       ],
       "resources": [
-        "**/*",
-        "*"
+        "assets/chunk-71a2e073.js",
+        "assets/chunk-b16a0f0c.js",
+        "assets/chunk-f1fd0f50.js",
+        "assets/chunk-fde2e1c9.js",
+        "assets/chunk-dca13c2b.js"
       ],
       "use_dynamic_url": true
     }
