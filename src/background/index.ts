@@ -16,6 +16,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
 
     return true;
+  } else if (request.message === RuntimeMessage.CONVERT_TO_PDF_DOWNLOAD_PDF) {
+    chrome.downloads.download(
+      {
+        url: request.data.url,
+        filename: request.data.filename,
+        conflictAction: "overwrite",
+      },
+      function (downloadId) {
+        console.log("Download started with ID:", downloadId);
+        sendResponse("Download started");
+      }
+    );
+
+    return true;
   }
 });
 

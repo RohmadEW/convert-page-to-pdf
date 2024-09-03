@@ -143,15 +143,6 @@ const cropImage = async (
   });
 };
 
-const removeAllIFrame = () => {
-  const iframes = document.querySelectorAll("iframe");
-  if (iframes.length > 0) {
-    iframes.forEach((iframe) => {
-      iframe.remove();
-    });
-  }
-};
-
 // Open modal to convert page to PDF
 const modalConvertToPDF = async () => {
   if (document.getElementById("converter-pdf-modal")) {
@@ -211,6 +202,15 @@ const modalConvertToPDF = async () => {
         </div>
         <div id="converter-pdf-alert-downloading" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px;display: none;">
           Loading the screenshots, it takes a few seconds.
+        </div>
+        <div id="converter-pdf-alternative-download" style="font-size: 18px; text-align: center;margin-top: 16px;margin-bottom: 12px;display: none;">
+          <div>
+            If the download doesn't start automatically, you can download it by clicking the button below.
+          </div>
+          <button id="converter-pdf-alternative-download-button" style="display: flex; align-items: center; margin: auto; background-color: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;margin-top: 12px;width: 250px;justify-content: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 96 960 960" width="20" style="margin-right: 10px;"><path fill="white" d="M400 296v320L280 496l-56 56 216 216 216-216-56-56-120 120V296H400Zm-240 640V726h80v150h480V726h80v210H160Z"/></svg>
+            Download Now
+          </button>
         </div>
       </div>
     `;
@@ -343,10 +343,34 @@ const modalConvertToPDF = async () => {
               }
             }
 
-            removeAllIFrame();
-
             const fileName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
             pdf.save(`${fileName}.pdf`);
+
+            const blob = new Blob([pdf.output("blob")], {
+              type: "application/pdf",
+            });
+            const url = URL.createObjectURL(blob);
+            const downloadButton = document.getElementById(
+              "converter-pdf-alternative-download-button"
+            ) as HTMLButtonElement;
+            downloadButton.addEventListener("click", () => {
+              chrome.runtime.sendMessage({
+                message: RuntimeMessage.CONVERT_TO_PDF_DOWNLOAD_PDF,
+                data: {
+                  url,
+                  filename: `${fileName}.pdf`,
+                },
+              });
+            });
+
+            const downloadButtonPanel = document.getElementById(
+              "converter-pdf-alternative-download"
+            );
+            if (downloadButtonPanel) {
+              downloadButtonPanel.style.display = "block";
+            }
+
+            // URL.revokeObjectURL(url);
 
             document.body.removeChild(img);
 
